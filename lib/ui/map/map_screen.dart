@@ -2,11 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:user_locations/data/model/user_address.dart';
+import 'package:user_locations/providers/address_call_provider.dart';
+import 'package:user_locations/providers/location_provider.dart';
+import 'package:user_locations/providers/user_locations_provider.dart';
+import 'package:user_locations/ui/map/widgets/address_kind_selector.dart';
+import 'package:user_locations/ui/map/widgets/address_lang_selector.dart';
+import 'package:user_locations/ui/map/widgets/save_button.dart';
 
 class MapScreen extends StatefulWidget {
-  const MapScreen({super.key, required this.latLong});
-
-  final LatLng latLong;
+  const MapScreen({super.key});
 
   @override
   State<MapScreen> createState() => _MapScreenState();
@@ -22,13 +28,16 @@ class _MapScreenState extends State<MapScreen> {
 
   @override
   void initState() {
+    LocationProvider locationProvider =
+        Provider.of<LocationProvider>(context, listen: false);
+
     initialCameraPosition = CameraPosition(
-      target: widget.latLong,
+      target: locationProvider.latLong!,
       zoom: 13,
     );
 
     currentCameraPosition = CameraPosition(
-      target: widget.latLong,
+      target: locationProvider.latLong!,
       zoom: 13,
     );
 
@@ -47,9 +56,15 @@ class _MapScreenState extends State<MapScreen> {
             onCameraIdle: () {
               debugPrint(
                   "CURRENT CAMERA POSITION: ${currentCameraPosition.target.latitude}");
+
+              context
+                  .read<AddressCallProvider>()
+                  .getAddressByLatLong(latLng: currentCameraPosition.target);
+
               setState(() {
                 onCameraMoveStarted = false;
               });
+
               debugPrint("MOVE FINISHED");
             },
             liteModeEnabled: false,
@@ -75,7 +90,49 @@ class _MapScreenState extends State<MapScreen> {
               color: Colors.red,
               size: onCameraMoveStarted ? 50 : 32,
             ),
-          )
+          ),
+          Align(
+            alignment: Alignment.topCenter,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 70),
+              child: Text(
+                context.watch<AddressCallProvider>().scrolledAddressText,
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                style: const TextStyle(
+                  fontSize: 22,
+                  color: Colors.red,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          const Align(
+            alignment: Alignment.centerLeft,
+            child: AddressKindSelector(),
+          ),
+          const Align(
+            alignment: Alignment.centerRight,
+            child: AddressLangSelector(),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Visibility(
+              visible: context.watch<AddressCallProvider>().canSaveAddress(),
+              child: SaveButton(onTap: () {
+                AddressCallProvider adp =
+                    Provider.of<AddressCallProvider>(context, listen: false);
+                context.read<UserLocationsProvider>().insertUserAddress(
+                      UserAddress(
+                        lat: currentCameraPosition.target.latitude,
+                        long: currentCameraPosition.target.longitude,
+                        address: adp.scrolledAddressText,
+                        created: DateTime.now().toString(),
+                      ),
+                    );
+              }),
+            ),
+          ),
         ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,

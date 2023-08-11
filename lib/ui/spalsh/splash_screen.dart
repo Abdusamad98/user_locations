@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:location/location.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:provider/provider.dart';
+import 'package:user_locations/providers/location_provider.dart';
 import 'package:user_locations/ui/map/map_screen.dart';
+import 'package:user_locations/ui/tab_box.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -11,67 +14,37 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  LatLng? latLong;
-
-  Future<void> _getLocation() async {
-    Location location = Location();
-
-    bool serviceEnabled;
-    PermissionStatus permissionGranted;
-    LocationData locationData;
-
-    serviceEnabled = await location.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await location.requestService();
-      if (!serviceEnabled) {
-        return;
-      }
-    }
-
-    permissionGranted = await location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) {
-        return;
-      }
-    }
-
-    locationData = await location.getLocation();
-
-    setState(() {
-      latLong = LatLng(
-        locationData.latitude!,
-         locationData.longitude!,
-      );
-    });
-  }
-
   _init() async {
-    await _getLocation();
-
-    await Future.delayed(const Duration(seconds: 1));
-
-    if (context.mounted&&latLong!=null) {
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) {
-        return MapScreen(
-          latLong: latLong!,
-        );
-      }));
+    await Future.delayed(const Duration(seconds: 2));
+    if (context.mounted) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) {
+            return TabBox();
+          },
+        ),
+      );
     }
-  }
-
-  @override
-  void initState() {
-    _init();
-    super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
+    LocationProvider locationProvider = Provider.of<LocationProvider>(context);
+    if (locationProvider.latLong != null) {
+      _init();
+    }
     return Scaffold(
-      body: Center(
-        child: Text("Splash Screen:${latLong?.longitude}  and ${latLong?.latitude}  "),
-      ),
+      body: Center(child: Consumer<LocationProvider>(
+        builder: (context, locationProvider, child) {
+          if (locationProvider.latLong == null) {
+            return const Text("EMPTY LOCATION!!!");
+          } else {
+            return Text(
+                "Splash Screen:${locationProvider.latLong!.longitude}  and ${locationProvider.latLong!.latitude}");
+          }
+        },
+      )),
     );
   }
 }
