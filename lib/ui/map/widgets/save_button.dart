@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class SaveButton extends StatelessWidget {
   const SaveButton({super.key, required this.onTap});
 
-  final VoidCallback onTap;
+  final Function() onTap;
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,7 @@
 import 'dart:async';
-
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:user_locations/data/model/user_address.dart';
@@ -10,6 +11,7 @@ import 'package:user_locations/providers/user_locations_provider.dart';
 import 'package:user_locations/ui/map/widgets/address_kind_selector.dart';
 import 'package:user_locations/ui/map/widgets/address_lang_selector.dart';
 import 'package:user_locations/ui/map/widgets/save_button.dart';
+import 'package:user_locations/utils/utility_functions.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -23,6 +25,8 @@ class _MapScreenState extends State<MapScreen> {
   late CameraPosition currentCameraPosition;
   bool onCameraMoveStarted = false;
 
+  Set<Marker> markers = {};
+
   final Completer<GoogleMapController> _controller =
       Completer<GoogleMapController>();
 
@@ -30,6 +34,7 @@ class _MapScreenState extends State<MapScreen> {
   void initState() {
     LocationProvider locationProvider =
         Provider.of<LocationProvider>(context, listen: false);
+    addNewMarker(locationProvider.latLong!);
 
     initialCameraPosition = CameraPosition(
       target: locationProvider.latLong!,
@@ -50,6 +55,10 @@ class _MapScreenState extends State<MapScreen> {
       body: Stack(
         children: [
           GoogleMap(
+            onLongPress: (latLng) {
+              addNewMarker(latLng);
+            },
+            markers: markers,
             onCameraMove: (CameraPosition cameraPosition) {
               currentCameraPosition = cameraPosition;
             },
@@ -151,4 +160,19 @@ class _MapScreenState extends State<MapScreen> {
       CameraUpdate.newCameraPosition(cameraPosition),
     );
   }
+
+  addNewMarker(LatLng latLng) async {
+    Uint8List uint8list = await getBytesFromAsset("assets/courier.png", 150);
+    markers.add(Marker(
+        markerId: MarkerId(
+          DateTime.now().toString(),
+        ),
+        position: latLng,
+        icon: BitmapDescriptor.fromBytes(uint8list),
+        //BitmapDescriptor.defaultMarker,
+        infoWindow: const InfoWindow(
+            title: "Samarqand", snippet: "Falonchi Ko'chasi 45-uy ")));
+    setState(() {});
+  }
+
 }
